@@ -12,6 +12,7 @@ const chatController = require('./controllers/chatController')
 const groupChatController = require('./controllers/groupChatController')
 const messageController = require('./controllers/messageController')
 const contactController = require('./controllers/contactController')
+const channelController = require('./controllers/channelController')
 
 /**
  * ================
@@ -178,6 +179,32 @@ contactRouter.post('/unblock/:sessionId', [middleware.sessionNameValidation, mid
 contactRouter.post('/getFormattedNumber/:sessionId', [middleware.sessionNameValidation, middleware.sessionValidation], contactController.getFormattedNumber)
 contactRouter.post('/getCountryCode/:sessionId', [middleware.sessionNameValidation, middleware.sessionValidation], contactController.getCountryCode)
 contactRouter.post('/getProfilePicUrl/:sessionId', [middleware.sessionNameValidation, middleware.sessionValidation], contactController.getProfilePicUrl)
+
+/**
+ * ================
+ * CHANNEL ENDPOINTS
+ * ================
+ */
+const channelRouter = express.Router()
+channelRouter.use(middleware.apikey)
+sessionRouter.use(middleware.chatSwagger) // Reusing chat swagger for now
+routes.use('/channel', channelRouter)
+
+channelRouter.post('/getChannelInfo/:sessionId', [middleware.sessionNameValidation, middleware.sessionValidation], channelController.getChannelInfo)
+channelRouter.get('/getAllChannels/:sessionId', [middleware.sessionNameValidation, middleware.sessionValidation], channelController.getAllChannels)
+channelRouter.post('/createChannel/:sessionId', [middleware.sessionNameValidation, middleware.sessionValidation], channelController.createChannel)
+channelRouter.post('/deleteChannel/:sessionId', [middleware.sessionNameValidation, middleware.sessionValidation], channelController.deleteChannel)
+channelRouter.post('/subscribeToChannel/:sessionId', [middleware.sessionNameValidation, middleware.sessionValidation], channelController.subscribeToChannel)
+channelRouter.post('/unsubscribeFromChannel/:sessionId', [middleware.sessionNameValidation, middleware.sessionValidation], channelController.unsubscribeFromChannel)
+channelRouter.post('/searchChannels/:sessionId', [middleware.sessionNameValidation, middleware.sessionValidation], channelController.searchChannels)
+channelRouter.post('/getChannelByInviteCode/:sessionId', [middleware.sessionNameValidation, middleware.sessionValidation], channelController.getChannelByInviteCode)
+channelRouter.post('/sendChannelMessage/:sessionId', [middleware.sessionNameValidation, middleware.sessionValidation], channelController.sendChannelMessage)
+channelRouter.post('/updateChannelInfo/:sessionId', [middleware.sessionNameValidation, middleware.sessionValidation], channelController.updateChannelInfo)
+channelRouter.post('/manageChannelAdmins/:sessionId', [middleware.sessionNameValidation, middleware.sessionValidation], channelController.manageChannelAdmins)
+channelRouter.post('/transferChannelOwnership/:sessionId', [middleware.sessionNameValidation, middleware.sessionValidation], channelController.transferChannelOwnership)
+channelRouter.post('/getChannelSubscribers/:sessionId', [middleware.sessionNameValidation, middleware.sessionValidation], channelController.getChannelSubscribers)
+channelRouter.post('/fetchChannelMessages/:sessionId', [middleware.sessionNameValidation, middleware.sessionValidation], channelController.fetchChannelMessages)
+channelRouter.post('/muteChannel/:sessionId', [middleware.sessionNameValidation, middleware.sessionValidation], channelController.muteChannel)
 /**
  * ================
  * SWAGGER ENDPOINTS
