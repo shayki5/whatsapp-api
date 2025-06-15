@@ -258,7 +258,42 @@ const sendChannelMessage = async (req, res) => {
           options: {
             type: 'object',
             description: 'Options for sending the message',
-            example: '{}'
+            properties: {
+              linkPreview: {
+                type: 'boolean',
+                description: 'Show links preview',
+                example: true
+              },
+              sendAudioAsVoice: {
+                type: 'boolean',
+                description: 'Send audio as voice message',
+                example: false
+              },
+              sendMediaAsDocument: {
+                type: 'boolean',
+                description: 'Send media as document',
+                example: false
+              },
+              parseVCards: {
+                type: 'boolean',
+                description: 'Automatically parse vCards and send them as contacts',
+                example: true
+              },
+              caption: {
+                type: 'string',
+                description: 'Image or video caption',
+                example: 'This is a caption'
+              },
+              quotedMessageId: {
+                type: 'string',
+                description: 'Id of the message that is being quoted (or replied to)',
+                example: 'true_123456789@c.us_ABCD1234567890'
+              }
+            },
+            example: {
+              sendMediaAsDocument: true,
+              caption: 'Sending media as document'
+            }
           }
         }
       }
