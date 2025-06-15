@@ -1,0 +1,968 @@
+openapi: 3.0.0
+info:
+  title: WhatsApp Channel API
+  version: 1.0.0
+  description: API endpoints for managing WhatsApp Channels.
+servers:
+  - url: http://localhost:3000 # Replace with your actual server URL
+    description: Development server
+
+components:
+  schemas:
+    SessionIdParam:
+      name: sessionId
+      in: path
+      required: true
+      description: The ID of the session to use.
+      schema:
+        type: string
+        example: mySession
+
+    ChannelIdBody:
+      type: object
+      required:
+        - channelId
+      properties:
+        channelId:
+          type: string
+          description: The ID of the channel.
+          example: "1234567890@newsletter"
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Error message"
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+
+    Channel:
+      type: object
+      properties:
+        id:
+          type: object
+          properties:
+            server:
+              type: string
+              example: "newsletter"
+            user:
+              type: string
+              example: "1234567890"
+            _serialized:
+              type: string
+              example: "1234567890@newsletter"
+        name:
+          type: string
+          example: "Channel Name"
+        description:
+          type: string
+          example: "Channel Description"
+        isChannel:
+          type: boolean
+          example: true
+        isGroup:
+          type: boolean
+          example: false
+        isReadOnly:
+          type: boolean
+          example: true
+        unreadCount:
+          type: integer
+          example: 0
+        timestamp:
+          type: integer
+          description: Unix timestamp for when the last activity occurred.
+          example: 1678886400
+        isMuted:
+          type: boolean
+          example: false
+        muteExpiration:
+          type: integer
+          description: Unix timestamp for when the mute expires.
+          example: 0
+        lastMessage:
+          type: object
+          nullable: true
+          description: Last message in the channel (refer to Message schema).
+
+    Message: # Simplified Message schema based on whatsapp-web.js structure
+      type: object
+      properties:
+        id:
+          type: object
+          properties:
+            fromMe:
+              type: boolean
+            remote:
+              type: string # ChatId string
+            id:
+              type: string
+            _serialized:
+              type: string
+        ack:
+          type: integer
+          description: Message acknowledgment status (-1: ERROR, 0: PENDING, 1: SENT, 2: RECEIVED, 3: READ, 4: PLAYED)
+        hasMedia:
+          type: boolean
+        body:
+          type: string
+        type:
+          type: string
+          description: Type of message (e.g., chat, image, video, ptt)
+        timestamp:
+          type: integer
+          description: Unix timestamp of the message
+        from:
+          type: string
+          description: Sender ID
+        to:
+          type: string
+          description: Receiver ID (channelId in this context for channel messages)
+        author:
+          type: string
+          nullable: true
+          description: Author of the message, if applicable (e.g., in groups/channels)
+        # Add other relevant message properties like mediaKey, caption, etc.
+
+    CreateChannelOptions:
+      type: object
+      properties:
+        description:
+          type: string
+          description: The channel description.
+          example: "This is a great channel."
+        picture:
+          type: string # Assuming MessageMedia or base64 string for simplicity
+          description: "Base64 encoded image for channel picture."
+          example: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg..."
+
+    CreateChannelResult:
+      type: object
+      properties:
+        title:
+          type: string
+          example: "My New Channel"
+        nid: # ChatId object
+          type: object
+          properties:
+            server:
+              type: string
+              example: "newsletter"
+            user:
+              type: string
+              example: "0987654321"
+            _serialized:
+              type: string
+              example: "0987654321@newsletter"
+        inviteLink:
+          type: string
+          example: "https://whatsapp.com/channel/0987654321"
+        createdAtTs:
+          type: integer
+          example: 1678886400
+
+    UnsubscribeOptionsBody:
+      type: object
+      required:
+        - channelId
+      properties:
+        channelId:
+          type: string
+          example: "1234567890@newsletter"
+        options:
+          type: object
+          properties:
+            deleteLocalModels:
+              type: boolean
+              description: "If true, after unsubscription, it will completely remove a channel from the channel collection."
+              example: false
+
+    SearchChannelsBody:
+      type: object
+      required:
+        - searchOptions
+      properties:
+        searchOptions:
+          type: object
+          properties:
+            searchText:
+              type: string
+              example: "News Updates"
+            countryCodes:
+              type: array
+              items:
+                type: string
+              example: ["US", "GB"]
+            skipSubscribedNewsletters:
+              type: boolean
+              example: true
+            view:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 10
+
+    GetChannelByInviteCodeBody:
+      type: object
+      required:
+        - inviteCode
+      properties:
+        inviteCode:
+          type: string
+          description: The invite code of the channel.
+          example: "ABCDEF12345"
+
+    SendChannelMessageBody:
+      type: object
+      required:
+        - channelId
+        - content
+      properties:
+        channelId:
+          type: string
+          example: "1234567890@newsletter"
+        content:
+          oneOf: 
+            - type: string
+              example: "Hello from the API!"
+            - type: object # For MessageMedia
+              properties:
+                mimetype:
+                  type: string
+                  example: "image/jpeg"
+                data:
+                  type: string
+                  format: base64
+                  example: "iVBORw0KGgoAAAANSUhEUg..."
+                filename:
+                  type: string
+                  nullable: true
+                  example: "image.jpg"
+          description: "The message content (text or MessageMedia object)."
+        options:
+          type: object
+          properties:
+            caption:
+              type: string
+              example: "Check out this cool image!"
+            mentions:
+              type: array
+              items:
+                type: string
+                example: "123456789@c.us"
+            # media field is part of content for MessageMedia
+            extra:
+              type: object
+              description: "Extra options"
+
+    UpdateChannelInfoBody:
+      type: object
+      required:
+        - channelId
+        - updateType
+        - value
+      properties:
+        channelId:
+          type: string
+          example: "1234567890@newsletter"
+        updateType:
+          type: string
+          enum: [subject, description, profilePicture, reactionSetting]
+          description: The type of information to update.
+          example: "subject"
+        value:
+          oneOf:
+            - type: string
+              example: "New Channel Subject"
+            - type: integer # For reactionSetting (0: None, 1: Basic, 2: All)
+              example: 1
+            - type: object # For profilePicture (MessageMedia-like structure)
+              properties:
+                mimetype:
+                  type: string
+                  example: "image/jpeg"
+                data:
+                  type: string
+                  format: base64
+                  example: "iVBORw0KGgoAAAANSUhEUg..."
+                filename:
+                  type: string
+                  nullable: true
+                  example: "new_pic.jpg"
+          description: The new value for the update.
+
+    ManageChannelAdminsBody:
+      type: object
+      required:
+        - channelId
+        - action
+      properties:
+        channelId:
+          type: string
+          example: "1234567890@newsletter"
+        action:
+          type: string
+          enum: [invite, accept, revoke, demote]
+          description: The admin action to perform.
+          example: "invite"
+        userId:
+          type: string
+          description: "The ID of the user (required for invite, revoke, demote)."
+          example: "9876543210@c.us"
+        options: # Options for invite action
+          type: object
+          properties:
+            comment:
+              type: string
+              example: "Please join as admin."
+
+    TransferChannelOwnershipBody:
+      type: object
+      required:
+        - channelId
+        - newOwnerId
+      properties:
+        channelId:
+          type: string
+          example: "1234567890@newsletter"
+        newOwnerId:
+          type: string
+          description: "The ID of the new owner (must be an existing admin)."
+          example: "9876543210@c.us"
+        options:
+          type: object
+          properties:
+            shouldDismissSelfAsAdmin:
+              type: boolean
+              description: "If true, current user becomes a subscriber after transfer."
+              example: true
+
+    GetChannelSubscribersBody:
+      type: object
+      required:
+        - channelId
+      properties:
+        channelId:
+          type: string
+          example: "1234567890@newsletter"
+        limit:
+          type: integer
+          description: "The maximum number of subscribers to return."
+          example: 100
+
+    ChannelSubscriber:
+      type: object
+      properties:
+        contact:
+          $ref: '#/components/schemas/Contact' 
+        role:
+          type: string
+          example: "ADMIN" # or "SUBSCRIBER"
+
+    Contact: # Simplified Contact schema
+      type: object
+      properties:
+        id:
+          type: object
+          properties:
+            server:
+              type: string
+            user:
+              type: string
+            _serialized:
+              type: string
+        name:
+          type: string
+          nullable: true
+        pushname:
+          type: string
+        isUser:
+          type: boolean
+        isMe:
+          type: boolean
+
+    FetchChannelMessagesBody:
+      type: object
+      required:
+        - channelId
+      properties:
+        channelId:
+          type: string
+          example: "1234567890@newsletter"
+        searchOptions:
+          type: object
+          properties:
+            limit:
+              type: integer
+              description: "The amount of messages to return."
+              example: 50
+
+    MuteChannelBody:
+      type: object
+      required:
+        - channelId
+        - mute
+      properties:
+        channelId:
+          type: string
+          example: "1234567890@newsletter"
+        mute:
+          type: boolean
+          description: "Whether to mute (true) or unmute (false) the channel."
+          example: true
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: apikey
+
+paths:
+  /channel/getChannelInfo/{sessionId}:
+    post:
+      tags:
+        - Channel
+      summary: Get Channel Information
+      description: Gets information about a specific channel using its ID.
+      operationId: getChannelInfo
+      parameters:
+        - $ref: '#/components/schemas/SessionIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChannelIdBody'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  channel:
+                    $ref: '#/components/schemas/Channel'
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+      security:
+        - ApiKeyAuth: []
+
+  /channel/getAllChannels/{sessionId}:
+    get:
+      tags:
+        - Channel
+      summary: Get All Channels
+      description: Gets all channels the current session is subscribed to or has cached.
+      operationId: getAllChannels
+      parameters:
+        - $ref: '#/components/schemas/SessionIdParam'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  channels:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Channel'
+        '500': { $ref: '#/components/responses/ServerError' }
+      security:
+        - ApiKeyAuth: []
+
+  /channel/createChannel/{sessionId}:
+    post:
+      tags:
+        - Channel
+      summary: Create Channel
+      description: Creates a new WhatsApp channel.
+      operationId: createChannel
+      parameters:
+        - $ref: '#/components/schemas/SessionIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+              properties:
+                title:
+                  type: string
+                  description: The title of the channel to create.
+                  example: "My Awesome Channel"
+                options:
+                  $ref: '#/components/schemas/CreateChannelOptions'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  result:
+                    $ref: '#/components/schemas/CreateChannelResult'
+        '500': { $ref: '#/components/responses/ServerError' }
+      security:
+        - ApiKeyAuth: []
+
+  /channel/deleteChannel/{sessionId}:
+    post:
+      tags:
+        - Channel
+      summary: Delete Channel
+      description: Deletes a channel created by the current user.
+      operationId: deleteChannel
+      parameters:
+        - $ref: '#/components/schemas/SessionIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChannelIdBody'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  result:
+                    type: boolean
+                    example: true
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+      security:
+        - ApiKeyAuth: []
+
+  /channel/subscribeToChannel/{sessionId}:
+    post:
+      tags:
+        - Channel
+      summary: Subscribe to Channel
+      description: Subscribes the current user to a specified channel.
+      operationId: subscribeToChannel
+      parameters:
+        - $ref: '#/components/schemas/SessionIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChannelIdBody'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  result:
+                    type: boolean
+                    example: true
+        '500': { $ref: '#/components/responses/ServerError' }
+      security:
+        - ApiKeyAuth: []
+
+  /channel/unsubscribeFromChannel/{sessionId}:
+    post:
+      tags:
+        - Channel
+      summary: Unsubscribe from Channel
+      description: Unsubscribes the current user from a specified channel.
+      operationId: unsubscribeFromChannel
+      parameters:
+        - $ref: '#/components/schemas/SessionIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnsubscribeOptionsBody'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  result:
+                    type: boolean
+                    example: true
+        '500': { $ref: '#/components/responses/ServerError' }
+      security:
+        - ApiKeyAuth: []
+
+  /channel/searchChannels/{sessionId}:
+    post:
+      tags:
+        - Channel
+      summary: Search Channels
+      description: Searches for channels based on specified criteria.
+      operationId: searchChannels
+      parameters:
+        - $ref: '#/components/schemas/SessionIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchChannelsBody'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  channels:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Channel'
+        '500': { $ref: '#/components/responses/ServerError' }
+      security:
+        - ApiKeyAuth: []
+
+  /channel/getChannelByInviteCode/{sessionId}:
+    post:
+      tags:
+        - Channel
+      summary: Get Channel by Invite Code
+      description: Retrieves channel information using its invite code.
+      operationId: getChannelByInviteCode
+      parameters:
+        - $ref: '#/components/schemas/SessionIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetChannelByInviteCodeBody'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  channel:
+                    $ref: '#/components/schemas/Channel'
+        '500': { $ref: '#/components/responses/ServerError' }
+      security:
+        - ApiKeyAuth: []
+
+  /channel/sendChannelMessage/{sessionId}:
+    post:
+      tags:
+        - Channel
+      summary: Send Channel Message
+      description: Sends a message to a specified channel.
+      operationId: sendChannelMessage
+      parameters:
+        - $ref: '#/components/schemas/SessionIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendChannelMessageBody'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    $ref: '#/components/schemas/Message'
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+      security:
+        - ApiKeyAuth: []
+
+  /channel/updateChannelInfo/{sessionId}:
+    post:
+      tags:
+        - Channel
+      summary: Update Channel Information
+      description: Updates channel information such as subject, description, profile picture, or reaction settings.
+      operationId: updateChannelInfo
+      parameters:
+        - $ref: '#/components/schemas/SessionIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateChannelInfoBody'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  result:
+                    type: boolean
+                    example: true
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+      security:
+        - ApiKeyAuth: []
+
+  /channel/manageChannelAdmins/{sessionId}:
+    post:
+      tags:
+        - Channel
+      summary: Manage Channel Admins
+      description: Manages channel administrators (invite, accept invitation, revoke invitation, demote admin).
+      operationId: manageChannelAdmins
+      parameters:
+        - $ref: '#/components/schemas/SessionIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManageChannelAdminsBody'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  result:
+                    type: boolean
+                    example: true
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+      security:
+        - ApiKeyAuth: []
+
+  /channel/transferChannelOwnership/{sessionId}:
+    post:
+      tags:
+        - Channel
+      summary: Transfer Channel Ownership
+      description: Transfers ownership of a channel to another user (must be an admin).
+      operationId: transferChannelOwnership
+      parameters:
+        - $ref: '#/components/schemas/SessionIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferChannelOwnershipBody'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  result:
+                    type: boolean
+                    example: true
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+      security:
+        - ApiKeyAuth: []
+
+  /channel/getChannelSubscribers/{sessionId}:
+    post:
+      tags:
+        - Channel
+      summary: Get Channel Subscribers
+      description: Retrieves a list of subscribers for a channel (limited to contacts of the user).
+      operationId: getChannelSubscribers
+      parameters:
+        - $ref: '#/components/schemas/SessionIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetChannelSubscribersBody'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  subscribers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ChannelSubscriber'
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+      security:
+        - ApiKeyAuth: []
+
+  /channel/fetchChannelMessages/{sessionId}:
+    post:
+      tags:
+        - Channel
+      summary: Fetch Channel Messages
+      description: Fetches messages from a specified channel.
+      operationId: fetchChannelMessages
+      parameters:
+        - $ref: '#/components/schemas/SessionIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FetchChannelMessagesBody'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  messages:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Message'
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+      security:
+        - ApiKeyAuth: []
+
+  /channel/muteChannel/{sessionId}:
+    post:
+      tags:
+        - Channel
+      summary: Mute or Unmute Channel
+      description: Mutes or unmutes a specified channel.
+      operationId: muteChannel
+      parameters:
+        - $ref: '#/components/schemas/SessionIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MuteChannelBody'
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  result:
+                    type: boolean
+                    example: true
+        '404': { $ref: '#/components/responses/NotFound' }
+        '500': { $ref: '#/components/responses/ServerError' }
+      security:
+        - ApiKeyAuth: []
+
+  # Standard Responses
+  responses:
+    NotFound:
+      description: Resource not found (e.g., Channel or Session).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+            example:
+              success: false
+              message: "Channel not Found"
+    ServerError:
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+            example:
+              success: false
+              message: "An internal server error occurred."
+    BadRequest:
+      description: Bad request (e.g., invalid parameters or action).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+            example:
+              success: false
+              message: "Invalid update type"        
