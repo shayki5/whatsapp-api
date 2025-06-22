@@ -8,7 +8,7 @@ services:
   #     con:
   #       ipv4_address: 172.20.0.3
   app:
-    container_name: whatsapp_web_api
+    container_name: whatsapp_web_api_shayki
     #image: chrishubert/whatsapp-web-api:latest # Pull the image from Docker Hub
     build: .
     restart: always

@@ -363,6 +363,76 @@ const terminateAllSessions = async (req, res) => {
   }
 }
 
+const debugScreenshot = async (req, res) => {
+  // #swagger.summary = 'Get session debug screenshot'
+  // #swagger.description = 'Gets a screenshot of the current page in the Puppeteer browser for the given session ID.'
+  // #swagger.parameters['sessionId'] = { description: 'Session ID' }
+  try {
+    const sessionId = req.params.sessionId
+    const sessionData = await validateSession(sessionId)
+
+    if (!sessionData.success) {
+      /* #swagger.responses[404] = {
+        description: "Session not found or not connected.",
+        content: {
+          "application/json": {
+            schema: { "$ref": "#/definitions/ErrorResponse" }
+          }
+        }
+      }
+      */
+      return sendErrorResponse(res, 404, sessionData.message)
+    }
+
+    const client = sessions.get(sessionId)
+    // Ensure pupPage is available
+    if (!client || !client.pupPage || client.pupPage.isClosed()) {
+      /* #swagger.responses[503] = {
+        description: "Puppeteer page not available or closed.",
+        content: {
+          "application/json": {
+            schema: { "$ref": "#/definitions/ErrorResponse" }
+          }
+        }
+      }
+      */
+      return sendErrorResponse(res, 503, 'Puppeteer page not available or closed.')
+    }
+
+    const screenshotBuffer = await client.pupPage.screenshot({ fullPage: true })
+
+    /* #swagger.responses[200] = {
+      description: "Screenshot image of the current Puppeteer page.",
+      content: {
+        "image/png": {
+          schema: {
+            type: "string",
+            format: "binary"
+          }
+        }
+      }
+    }
+    */
+    res.writeHead(200, {
+      'Content-Type': 'image/png',
+      'Content-Length': screenshotBuffer.length
+    })
+    res.end(screenshotBuffer)
+  } catch (error) {
+    /* #swagger.responses[500] = {
+      description: "Server Failure.",
+      content: {
+        "application/json": {
+          schema: { "$ref": "#/definitions/ErrorResponse" }
+        }
+      }
+    }
+    */
+    console.log('debugScreenshot ERROR', error)
+    sendErrorResponse(res, 500, error.message)
+  }
+}
+
 module.exports = {
   startSession,
   statusSession,
@@ -371,5 +441,6 @@ module.exports = {
   restartSession,
   terminateSession,
   terminateInactiveSessions,
-  terminateAllSessions
+  terminateAllSessions,
+  debugScreenshot
 }
