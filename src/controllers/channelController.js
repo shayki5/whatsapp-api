@@ -40,7 +40,35 @@ const getAllChannels = async (req, res) => {
   try {
     const client = sessions.get(req.params.sessionId)
     const channels = await client.getChannels()
-    res.json({ success: true, channels })
+    
+    // Safely serialize channels to avoid undefined property errors
+    const safeChannels = (channels || [])
+      .filter(channel => channel != null)
+      .map(channel => {
+        try {
+          return {
+            id: channel.id?._serialized || channel.id || '',
+            name: channel.name || '',
+            description: channel.description || '',
+            isChannel: channel.isChannel || false,
+            isGroup: channel.isGroup || false,
+            isReadOnly: channel.isReadOnly || false,
+            unreadCount: channel.unreadCount || 0,
+            timestamp: channel.timestamp || null,
+            isMuted: channel.isMuted || false,
+            muteExpiration: channel.muteExpiration || 0
+          }
+        } catch (e) {
+          // If a channel can't be serialized, return minimal info
+          return {
+            id: channel.id?._serialized || channel.id || 'unknown',
+            name: channel.name || 'Unknown',
+            error: 'Could not fully load channel data'
+          }
+        }
+      })
+    
+    res.json({ success: true, channels: safeChannels })
   } catch (error) {
     sendErrorResponse(res, 500, error.message)
   }
@@ -302,9 +330,26 @@ const sendChannelMessage = async (req, res) => {
     const { channelId, content, options } = req.body
     const client = sessions.get(req.params.sessionId)
     const channel = await client.getChatById(channelId)
-    if (!channel || !channel.isChannel) { sendErrorResponse(res, 404, 'Channel not Found') }
+    if (!channel || !channel.isChannel) { 
+      sendErrorResponse(res, 404, 'Channel not Found')
+      return
+    }
     const message = await channel.sendMessage(content, options)
-    res.json({ success: true, message })
+    
+    // Safely serialize the message to avoid undefined property errors
+    const safeMessage = {
+      id: message.id?._serialized || message.id || '',
+      body: message.body || '',
+      type: message.type || '',
+      timestamp: message.timestamp || null,
+      from: message.from || '',
+      to: message.to || '',
+      ack: message.ack || 0,
+      hasMedia: message.hasMedia || false,
+      isForwarded: message.isForwarded || false
+    }
+    
+    res.json({ success: true, message: safeMessage })
   } catch (error) {
     sendErrorResponse(res, 500, error.message)
   }
